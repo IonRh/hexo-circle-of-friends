@@ -49,9 +49,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          files: data.json
+          files: hexo_circle_of_friends/data.json
           overwrite: true
-          # 使用默认 GITHUB_TOKEN，无需 secrets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: keep alive
         uses: gautamkrishnar/keepalive-workflow@v2
