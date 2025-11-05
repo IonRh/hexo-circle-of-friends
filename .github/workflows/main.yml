@@ -6,53 +6,8 @@ on:
     - cron: "0 0,6,12,18,21 * * *"
   workflow_dispatch:
 
-env:
-  SIMPLE_MODE: false
-  STORAGE_TYPE: ${{ secrets.STORAGE_TYPE }}
-  PROXY: ${{ secrets.PROXY }}
-  APPID: ${{ secrets.APPID }}
-  APPKEY: ${{ secrets.APPKEY }}
-  MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
-  MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-  MYSQL_IP: ${{ secrets.MYSQL_IP }}
-  MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-  MYSQL_DB: ${{ secrets.MYSQL_DB }}
-  GITHUB_NAME: ${{ secrets.GH_NAME }}
-  GITHUB_EMAIL: ${{ secrets.GH_EMAIL }}
-  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 仅用于 git push
-  MONGODB_URI: ${{ secrets.MONGODB_URI }}
-  TZ: Asia/Shanghai
-
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.8"
-
-      - name: Install requirements
-        working-directory: ./hexo_circle_of_friends
-        run: pip install -r requirements.txt
-
-      - name: Set env
-        run: |
-          echo "BASE_PATH=$(pwd)" >> $GITHUB_ENV
-          echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
-
-      - name: Release data.json (overwrite latest)
-        if: ${{ env.SIMPLE_MODE == 'true' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          files: hexo_circle_of_friends/data.json
-          overwrite: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: keep alive
-        uses: gautamkrishnar/keepalive-workflow@v2
+      - uses: actions/checkout@v4
