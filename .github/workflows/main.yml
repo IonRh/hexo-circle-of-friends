@@ -1,59 +1,57 @@
-name: update-friends-posts
+name: update-friends-posts (极简模式)
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   schedule:
     - cron: "0 0,6,12,18,21 * * *"
   workflow_dispatch:
 
 env:
-  SIMPLE_MODE: false
-  STORAGE_TYPE: ${{ secrets.STORAGE_TYPE }}
-  PROXY: ${{ secrets.PROXY }}
-  APPID: ${{ secrets.APPID }}
-  APPKEY: ${{ secrets.APPKEY }}
-  MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
-  MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-  MYSQL_IP: ${{ secrets.MYSQL_IP }}
-  MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
-  MYSQL_DB: ${{ secrets.MYSQL_DB }}
-  GITHUB_NAME: ${{ secrets.GH_NAME }}
-  GITHUB_EMAIL: ${{ secrets.GH_EMAIL }}
-  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 仅用于 git push
-  MONGODB_URI: ${{ secrets.MONGODB_URI }}
+  SIMPLE_MODE: true
   TZ: Asia/Shanghai
+  SQLITE_DB: data.db  # 本地生成，后面会推送到根目录
 
 jobs:
-  build:
+  update-simple:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./hexo_circle_of_friends
+
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: 设置 Python 3.8
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: '3.8'
 
-      - name: Install requirements
-        working-directory: ./hexo_circle_of_friends
+      - name: 安装依赖
         run: pip install -r requirements.txt
 
-      - name: Set env
+      - name: 设置路径
         run: |
-          echo "BASE_PATH=$(pwd)" >> $GITHUB_ENV
-          echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
+          echo "BASE_PATH=$(pwd)/.." >> $GITHUB_ENV
+          echo "PYTHONPATH=$(pwd)/.." >> $GITHUB_ENV
 
-      - name: Upload to Release (GITHUB_TOKEN)
-        if: ${{ env.SIMPLE_MODE == 'true' }}
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/latest/assets
-          asset_path: data.json
-          asset_name: data.json
-          asset_content_type: application/json
+      - name: 更新数据（SQLite 临时）
+        run: python run.py
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STORAGE_TYPE: sqlite
+          SQLITE_DB: ${{ env.SQLITE_DB }}
 
-      - name: keep alive
+      - name: 转换为 data.json（极简模式）
+        run: python utils/simple_mode_transform_json.py
+
+      - name: 提交 data.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update data.json"
+          file_pattern: ../data.json
+          commit_user_name: github-actions[bot]
+          commit_user_email: github-actions@noreply.github.com
+
+      - name: 保活 Workflow
         uses: gautamkrishnar/keepalive-workflow@v2
