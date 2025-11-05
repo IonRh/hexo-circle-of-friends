@@ -6,8 +6,54 @@ on:
     - cron: "0 0,6,12,18,21 * * *"
   workflow_dispatch:
 
+env:
+  SIMPLE_MODE: false
+  STORAGE_TYPE: ${{ secrets.STORAGE_TYPE }}
+  PROXY: ${{ secrets.PROXY }}
+  APPID: ${{ secrets.APPID }}
+  APPKEY: ${{ secrets.APPKEY }}
+  MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+  MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+  MYSQL_IP: ${{ secrets.MYSQL_IP }}
+  MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+  MYSQL_DB: ${{ secrets.MYSQL_DB }}
+  GITHUB_NAME: ${{ secrets.GH_NAME }}
+  GITHUB_EMAIL: ${{ secrets.GH_EMAIL }}
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 仅用于 git push
+  MONGODB_URI: ${{ secrets.MONGODB_URI }}
+  TZ: Asia/Shanghai
+
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: Install requirements
+        working-directory: ./hexo_circle_of_friends
+        run: pip install -r requirements.txt
+
+      - name: Set env
+        run: |
+          echo "BASE_PATH=$(pwd)" >> $GITHUB_ENV
+          echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Upload to Release (GITHUB_TOKEN)
+        if: ${{ env.SIMPLE_MODE == 'true' }}
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/latest/assets
+          asset_path: data.json
+          asset_name: data.json
+          asset_content_type: application/json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: keep alive
+        uses: gautamkrishnar/keepalive-workflow@v2
